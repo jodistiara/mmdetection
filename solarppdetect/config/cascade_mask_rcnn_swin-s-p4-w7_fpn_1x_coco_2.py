@@ -1,5 +1,5 @@
 _base_ = [
-    '../../configs/_base_/models/cascade_mask_rcnn_swin_fpn.py',
+    '../../configs/_base_/models/cascade_mask_rcnn_r50_fpn.py',
     '../../configs/_base_/datasets/coco_instance.py',
     '../../configs/_base_/schedules/schedule_1x.py', 
     '../../configs/_base_/default_runtime.py'
@@ -22,6 +22,7 @@ model = dict(
         out_indices=(0, 1, 2, 3),
         with_cp=False,
         convert_weights=True,
+        frozen_stages = -1,
         init_cfg=None),
     neck=dict(in_channels=[96, 192, 384, 768]),
     roi_head=dict(
@@ -141,6 +142,21 @@ train_pipeline = [
     dict(type='DefaultFormatBundle'),
     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
 ]
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(
+        type='MultiScaleFlipAug',
+        img_scale=(1333, 800),
+        flip=False,
+        transforms=[
+            dict(type='Resize', keep_ratio=True),
+            dict(type='RandomFlip'),
+            dict(type='Normalize', **img_norm_cfg),
+            dict(type='Pad', size_divisor=32),
+            dict(type='ImageToTensor', keys=['img']),
+            dict(type='Collect', keys=['img']),
+        ])
+]
 
 data = dict(
     _delete_=True,
@@ -157,11 +173,13 @@ data = dict(
         # explicitly add your class names to the field `classes`
         classes=('module',),
         ann_file='via_project_16Mar2021_10h16m_coco.json',
-        data_root='solarppdetect/data/test/'),
+        data_root='solarppdetect/data/test/',
+        pipeline=test_pipeline),
     test=dict(
         type='CocoDataset',
         # explicitly add your class names to the field `classes`
         classes=('module',),
         ann_file='solarppdetect/data/test/via_project_16Mar2021_10h16m_coco.json',
-        data_root='solarppdetect/data/test/')
+        data_root='solarppdetect/data/test/',
+        pipeline=test_pipeline)
 )
